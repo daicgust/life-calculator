@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>ACS 案例學習單</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: clinical chart — ECG-grid header, sticky 7-step progress rail, one column of numbered case cards */
+:root{
+  --bg:#eef2f5; --paper:#ffffff; --ink:#1c2631; --muted:#5a6776; --line:#d3dae2;
+  --accent:#b0243b; --accent-ink:#ffffff; --soft:#f8e4e7; --grid:#f1c7ce; --ok:#2a7a57; --ok-soft:#dff1e8;
+  --field:#f7f9fb;
+  --f-display:"Noto Serif TC","Songti TC","PMingLiU",serif;
+  --f-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11161c; --paper:#1a2129; --ink:#e5eaf0; --muted:#9aa7b5; --line:#2d3743;
+  --accent:#ec5a70; --accent-ink:#1a0d10; --soft:#3a1d24; --grid:#4a2730; --ok:#5cc497; --ok-soft:#173a2b;
+  --field:#141a21; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#11161c; --paper:#1a2129; --ink:#e5eaf0; --muted:#9aa7b5; --line:#2d3743;
+  --accent:#ec5a70; --accent-ink:#1a0d10; --soft:#3a1d24; --grid:#4a2730; --ok:#5cc497; --ok-soft:#173a2b;
+  --field:#141a21; color-scheme:dark;}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
+.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+
+/* header */
+.hero{margin-top:16px;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--paper)}
+.ecg{height:74px;background-color:var(--paper);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:12px 12px;border-bottom:1px solid var(--line)}
+.ecg svg{display:block;width:100%;height:100%}
+.ecg path{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round}
+.hero-body{padding:18px 20px 20px;display:flex;flex-direction:column;gap:12px}
+.eyebrow{font-size:12px;letter-spacing:.12em;color:var(--accent);font-weight:700}
+h1{font-family:var(--f-display);font-size:26px;line-height:1.3;margin:0;text-wrap:balance}
+.lead{margin:0;color:var(--muted);max-width:62ch}
+.info{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:520px){.info{grid-template-columns:1fr}}
+
+/* sticky progress */
+.rail{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);border:1px solid var(--line);border-radius:6px;
+  padding:10px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.steps{display:flex;gap:6px;flex:1;min-width:0}
+.steps a{flex:1;min-width:28px;height:30px;border-radius:4px;border:1px solid var(--line);background:var(--field);
+  display:flex;align-items:center;justify-content:center;font-family:var(--f-mono);font-size:13px;color:var(--muted);text-decoration:none}
+.steps a.done{background:var(--ok);border-color:var(--ok);color:var(--paper)}
+.count{font-size:13px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.count b{color:var(--ink);font-family:var(--f-mono)}
+
+/* cards */
+.card{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:18px 20px 20px;display:flex;flex-direction:column;gap:14px;scroll-margin-top:80px}
+.card-h{display:flex;align-items:center;gap:12px}
+.num{flex:none;width:34px;height:34px;border-radius:50%;background:var(--soft);color:var(--accent);font-family:var(--f-mono);
+  display:flex;align-items:center;justify-content:center;font-size:15px}
+.card.done .num{background:var(--ok-soft);color:var(--ok)}
+.card-h h2{margin:0;font-family:var(--f-display);font-size:19px;line-height:1.3}
+.card-h .en{font-family:var(--f-body);font-weight:400;font-size:13px;color:var(--muted);margin-left:6px}
+.state{margin-left:auto;font-size:12px;padding:2px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.card.done .state{border-color:var(--ok);color:var(--ok)}
+.q{font-weight:500;margin:0}
+.q small{font-weight:400;color:var(--muted)}
+.sub{display:flex;flex-direction:column;gap:8px;padding-top:12px;border-top:1px dashed var(--line)}
+.sub:first-of-type{border-top:0;padding-top:0}
+
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);min-width:0}
+input[type=text],textarea,select{font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:4px;padding:8px 10px;width:100%;min-width:0}
+textarea{resize:vertical;min-height:84px}
+input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-visible,.steps a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+.row{display:grid;gap:8px;align-items:start}
+.tl{grid-template-columns:120px minmax(0,1fr) 32px}
+.lab{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) 92px 32px}
+.med{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 32px}
+.rowlabel{font-size:12px;color:var(--muted);letter-spacing:.04em}
+@media (max-width:520px){
+  .tl{grid-template-columns:minmax(0,1fr) 32px}.tl .ev{grid-column:1/-1}
+  .lab{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 32px}.lab select{grid-column:1/3}
+}
+.hdr{font-size:12px;color:var(--muted)}
+.x{width:32px;height:38px;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:4px;cursor:pointer;font-size:16px}
+.x:hover{color:var(--accent);border-color:var(--accent)}
+.add{align-self:flex-start;font:inherit;font-size:13px;color:var(--accent);background:transparent;border:1px dashed var(--accent);border-radius:4px;padding:5px 12px;cursor:pointer}
+.radios{display:flex;gap:16px;flex-wrap:wrap}
+.radios label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:520px){.three{grid-template-columns:1fr}}
+
+.cath{border:1px solid var(--line);border-radius:6px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.cath h3{margin:0;font-size:16px;display:flex;align-items:baseline;gap:8px}
+.cath h3 .d{font-family:var(--f-mono);color:var(--accent)}
+.vessels{display:grid;grid-template-columns:64px minmax(0,1fr);gap:6px 10px;align-items:center}
+.vessels .v{font-family:var(--f-mono);font-size:14px}
+.pct{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:end}
+.pct .arrow{padding-bottom:8px;color:var(--muted)}
+
+/* actions */
+.actions{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:18px 20px;display:flex;flex-direction:column;gap:12px}
+.btns{display:flex;gap:10px;flex-wrap:wrap}
+.btn{font:inherit;font-weight:500;border-radius:4px;padding:10px 18px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.quiet{background:transparent;color:var(--muted);border-color:var(--line);margin-left:auto}
+.btn[disabled]{opacity:.5;cursor:wait}
+.msg{margin:0;font-size:14px;color:var(--muted)}
+.msg.warn{color:var(--accent)}
+.confirm{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px}
+
+/* export sheet: always printed light, kept off-screen */
+#sheet{position:absolute;left:-10000px;top:0;width:760px;background:#fff;color:#1c2631;font-family:var(--f-body);font-size:14px;line-height:1.6}
+#sheet .xb{padding:14px 26px}
+#sheet .xt{font-family:var(--f-display);font-size:22px;margin:0 0 4px}
+#sheet .xi{color:#5a6776;font-size:13px}
+#sheet .xh{font-weight:700;font-size:16px;border-bottom:2px solid #b0243b;padding-bottom:4px;margin:0 0 8px;color:#b0243b}
+#sheet .xq{font-weight:500;margin:8px 0 2px}
+#sheet .xa{white-space:pre-wrap;margin:0;padding:6px 10px;background:#f6f8fa;border-left:3px solid #d3dae2;min-height:28px}
+#sheet table{width:100%;border-collapse:collapse;font-size:13px}
+#sheet th,#sheet td{border:1px solid #d3dae2;padding:5px 8px;text-align:left;vertical-align:top}
+#sheet th{background:#f1f4f7}
+@media (prefers-reduced-motion:no-preference){.steps a,.num{transition:background-color .2s,color .2s}}
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="ecg" aria-hidden="true">
+      <svg viewBox="0 0 760 74" preserveAspectRatio="none"><path d="M0 46 H60 l6 -6 6 6 H90 l4 4 6 -38 6 46 4 -12 q14 -10 30 -10 q14 0 22 10 H200 l6 -6 6 6 H230 l4 4 6 -38 6 46 4 -12 q14 -10 30 -10 q14 0 22 10 H340 l6 -6 6 6 H370 l4 4 6 -38 6 46 4 -12 q14 -10 30 -10 q14 0 22 10 H480 l6 -6 6 6 H510 l4 4 6 -38 6 46 4 -12 q14 -10 30 -10 q14 0 22 10 H620 l6 -6 6 6 H650 l4 4 6 -38 6 46 4 -12 q14 -10 30 -10 q14 0 22 10 H760"/></svg>
+    </div>
+    <div class="hero-body">
+      <div class="eyebrow">WSQ ・ SUMMARY　成人護理案例評析</div>
+      <h1>ACS 案例重點整理</h1>
+      <p class="lead">閱讀案例電子檔後，依各項找出有意義、異常的資訊，簡要填寫。六項都完成後，下載 PDF 或圖片，帶到交班演練使用。</p>
+      <div class="info">
+        <label class="f">班級<input type="text" id="info-cls" data-path="info.cls" autocomplete="off"></label>
+        <label class="f">學號<input type="text" id="info-sid" data-path="info.sid" autocomplete="off"></label>
+        <label class="f">姓名<input type="text" id="info-name" data-path="info.name" autocomplete="off"></label>
+      </div>
+    </div>
+  </header>
+
+  <nav class="rail" aria-label="完成進度">
+    <div class="steps" id="steps"></div>
+    <div class="count">已完成 <b id="done-n">0</b> / 6</div>
+  </nav>
+
+  <section class="card" id="c1">
+    <div class="card-h"><span class="num">1</span><h2>主訴<span class="en">Chief Complaint</span></h2><span class="state">未完成</span></div>
+    <p class="q">病人有哪些症狀？</p>
+    <textarea id="cc" data-path="cc" rows="3"></textarea>
+  </section>
+
+  <section class="card" id="c2">
+    <div class="card-h"><span class="num">2</span><h2>現在病史<span class="en">Present Illness</span></h2><span class="state">未完成</span></div>
+    <label class="f" style="max-width:160px">年齡<input type="text" id="hpi-age" data-path="hpi.age" inputmode="numeric"></label>
+    <div class="sub">
+      <p class="q">發病開始於？ <small>日期與發生的情形</small></p>
+      <div class="row tl">
+        <input type="text" id="hpi-start-date" data-path="hpi.start.date" placeholder="日期">
+        <textarea class="ev" id="hpi-start-event" data-path="hpi.start.event" rows="2" placeholder="發生的情形"></textarea>
+        <span></span>
+      </div>
+    </div>
+    <div class="sub">
+      <p class="q">接續？ <small>依時間順序寫下後續的變化與就醫經過</small></p>
+      <div id="tl-rows" style="display:flex;flex-direction:column;gap:8px"></div>
+      <button type="button" class="add" data-add="hpi.next">＋ 再加一筆</button>
+    </div>
+  </section>
+
+  <section class="card" id="c3">
+    <div class="card-h"><span class="num">3</span><h2>過去病史<span class="en">Past History</span></h2><span class="state">未完成</span></div>
+    <p class="q">有意義的過去病史是？</p>
+    <textarea id="ph" data-path="ph" rows="3"></textarea>
+  </section>
+
+  <section class="card" id="c4">
+    <div class="card-h"><span class="num">4</span><h2>家族史<span class="en">Family History</span></h2><span class="state">未完成</span></div>
+    <p class="q">家族史</p>
+    <textarea id="fh" data-path="fh" rows="2"></textarea>
+  </section>
+
+  <section class="card" id="c5">
+    <div class="card-h"><span class="num">5</span><h2>檢查與檢驗<span class="en">Examination / Lab</span></h2><span class="state">未完成</span></div>
+    <div class="sub">
+      <p class="q">有意義的檢驗值是哪些？ <small>至少四類或四項，並判讀高低</small></p>
+      <div class="row lab hdr"><span>檢驗項目</span><span>數值</span><span>判讀</span><span></span></div>
+      <div id="lab-rows" style="display:flex;flex-direction:column;gap:8px"></div>
+      <button type="button" class="add" data-add="labs">＋ 再加一項</button>
+    </div>
+    <div class="sub">
+      <p class="q">胸部 X 光有意義嗎？</p>
+      <div class="radios">
+        <label><input type="radio" name="xray" id="xray-y" value="有意義" data-path="xray.yn">有意義</label>
+        <label><input type="radio" name="xray" id="xray-n" value="無意義" data-path="xray.yn">無意義</label>
+      </div>
+      <label class="f">說明理由<textarea id="xray-note" data-path="xray.note" rows="2"></textarea></label>
+    </div>
+    <div class="sub">
+      <p class="q">心電圖的結果</p>
+      <div class="three">
+        <label class="f">哪些導程異常？<input type="text" id="ecg-leads" data-path="ecg.leads"></label>
+        <label class="f">何種異常？<input type="text" id="ecg-type" data-path="ecg.type"></label>
+        <label class="f">判定心肌病變位於？<input type="text" id="ecg-site" data-path="ecg.site"></label>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="c6">
+    <div class="card-h"><span class="num">6</span><h2>重要事件：心導管<span class="en">Key Events</span></h2><span class="state">未完成</span></div>
+    <div id="cath-blocks" style="display:flex;flex-direction:column;gap:14px"></div>
+  </section>
+
+  <section class="actions" id="actions">
+    <p class="q">下載學習單</p>
+    <p class="msg" id="msg">六項都完成後再下載，交班演練時比較好用。</p>
+    <div class="btns">
+      <button type="button" class="btn" id="dl-pdf">下載 PDF</button>
+      <button type="button" class="btn ghost" id="dl-png">下載圖片</button>
+      <button type="button" class="btn quiet" id="clear">清除重寫</button>
+    </div>
+    <div class="confirm" id="confirm" hidden>
+      <span>確定要清除所有填寫內容嗎？</span>
+      <button type="button" class="btn" id="clear-yes">清除</button>
+      <button type="button" class="btn ghost" id="clear-no">取消</button>
+    </div>
+  </section>
+</div>
+
+<div id="sheet" aria-hidden="true"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(function(){
+const KEY='acs-worksheet-v2';
+const VESSELS=['LM','LAD','LCX','RCA'];
+const CATHS=[{k:'d1',date:'10/1'},{k:'d6',date:'10/6'}];
+const blankCath=()=>({LM:'',LAD:'',LCX:'',RCA:'',tx:'',pre:'',post:''});
+const fresh=()=>({
+  info:{cls:'',sid:'',name:''}, cc:'',
+  hpi:{age:'',start:{date:'',event:''},next:[{date:'',event:''},{date:'',event:''},{date:'',event:''}]},
+  ph:'', fh:'',
+  labs:Array.from({length:4},()=>({item:'',val:'',flag:''})),
+  xray:{yn:'',note:''}, ecg:{leads:'',type:'',site:''},
+  cath:{d1:blankCath(),d6:blankCath()}
+});
+let S=fresh();
+try{const raw=localStorage.getItem(KEY); if(raw){S=Object.assign(fresh(),JSON.parse(raw));}}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
+const getP=p=>p.split('.').reduce((o,k)=>o==null?undefined:o[k],S);
+const setP=(p,v)=>{const ks=p.split('.');let o=S;for(let i=0;i<ks.length-1;i++)o=o[ks[i]];o[ks[ks.length-1]]=v;};
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const t=s=>(s||'').trim();
+
+/* ---------- dynamic rows ---------- */
+const MIN={'hpi.next':1,labs:4};
+function renderTL(){
+  document.getElementById('tl-rows').innerHTML=S.hpi.next.map((r,i)=>`
+    <div class="row tl">
+      <input type="text" id="tl-${i}-date" data-path="hpi.next.${i}.date" placeholder="日期" value="${esc(r.date)}">
+      <textarea class="ev" id="tl-${i}-event" data-path="hpi.next.${i}.event" rows="2" placeholder="接續的變化">${esc(r.event)}</textarea>
+      ${S.hpi.next.length>MIN['hpi.next']?`<button type="button" class="x" data-del="hpi.next" data-i="${i}" aria-label="刪除這一筆">×</button>`:'<span></span>'}
+    </div>`).join('');
+}
+function renderLabs(){
+  const opt=(v,cur)=>`<option value="${v}"${v===cur?' selected':''}>${v||'選擇'}</option>`;
+  document.getElementById('lab-rows').innerHTML=S.labs.map((r,i)=>`
+    <div class="row lab">
+      <input type="text" id="lab-${i}-item" data-path="labs.${i}.item" aria-label="檢驗項目" value="${esc(r.item)}">
+      <input type="text" id="lab-${i}-val" data-path="labs.${i}.val" aria-label="數值" value="${esc(r.val)}">
+      <select id="lab-${i}-flag" data-path="labs.${i}.flag" aria-label="判讀">${['','↑ 偏高','↓ 偏低','正常'].map(v=>opt(v,r.flag)).join('')}</select>
+      ${S.labs.length>MIN.labs?`<button type="button" class="x" data-del="labs" data-i="${i}" aria-label="刪除這一項">×</button>`:'<span></span>'}
+    </div>`).join('');
+}
+function renderCath(){
+  document.getElementById('cath-blocks').innerHTML=CATHS.map(c=>{const d=S.cath[c.k];return `
+    <div class="cath">
+      <h3><span class="d">${c.date}</span>心導管</h3>
+      <p class="q">完整報告 <small>各血管的阻塞位置與程度（%）</small></p>
+      <div class="vessels">${VESSELS.map(v=>`<span class="v">${v}</span><input type="text" id="${c.k}-${v}" data-path="cath.${c.k}.${v}" aria-label="${c.date} ${v}" value="${esc(d[v])}">`).join('')}</div>
+      <label class="f">治療 <span>（治療哪一條血管、用什麼方式）</span><textarea id="${c.k}-tx" data-path="cath.${c.k}.tx" rows="2">${esc(d.tx)}</textarea></label>
+      <p class="q">治療成效 <small>阻塞率</small></p>
+      <div class="pct">
+        <label class="f">治療前<input type="text" id="${c.k}-pre" data-path="cath.${c.k}.pre" value="${esc(d.pre)}"></label>
+        <span class="arrow">→</span>
+        <label class="f">治療後<input type="text" id="${c.k}-post" data-path="cath.${c.k}.post" value="${esc(d.post)}"></label>
+      </div>
+    </div>`;}).join('');
+}
+function fillStatic(){
+  document.querySelectorAll('[data-path]').forEach(el=>{
+    const v=getP(el.dataset.path);
+    if(el.type==='radio') el.checked=(v===el.value);
+    else if(el.tagName!=='SELECT' && v!=null && el.value!==v) el.value=v;
+  });
+}
+
+/* ---------- completion ---------- */
+const DONE={
+  c1:()=>!!t(S.cc),
+  c2:()=>!!t(S.hpi.age)&&!!t(S.hpi.start.event)&&S.hpi.next.some(r=>t(r.event)),
+  c3:()=>!!t(S.ph),
+  c4:()=>!!t(S.fh),
+  c5:()=>S.labs.filter(r=>t(r.item)&&t(r.val)).length>=4&&!!S.xray.yn&&!!t(S.ecg.leads)&&!!t(S.ecg.type)&&!!t(S.ecg.site),
+  c6:()=>CATHS.every(c=>{const d=S.cath[c.k];return t(d.tx)&&t(d.pre)&&t(d.post)&&VESSELS.some(v=>t(d[v]));})
+};
+const NAMES={c1:'主訴',c2:'現在病史',c3:'過去病史',c4:'家族史',c5:'檢查與檢驗',c6:'心導管'};
+function progress(){
+  let n=0;const steps=[];
+  Object.keys(DONE).forEach((id,i)=>{
+    const ok=DONE[id]();if(ok)n++;
+    const card=document.getElementById(id);card.classList.toggle('done',ok);
+    card.querySelector('.state').textContent=ok?'已完成':'未完成';
+    steps.push(`<a href="#${id}" class="${ok?'done':''}" title="${NAMES[id]}" aria-label="第${i+1}項 ${NAMES[id]}${ok?'，已完成':''}">${i+1}</a>`);
+  });
+  document.getElementById('steps').innerHTML=steps.join('');
+  document.getElementById('done-n').textContent=n;
+  return n;
+}
+
+/* ---------- events ---------- */
+document.addEventListener('input',e=>{const p=e.target.dataset&&e.target.dataset.path;if(!p)return;setP(p,e.target.value);save();progress();});
+document.addEventListener('change',e=>{const p=e.target.dataset&&e.target.dataset.path;if(!p)return;setP(p,e.target.value);save();progress();});
+document.addEventListener('click',e=>{
+  const a=e.target.closest('[data-add]'),d=e.target.closest('[data-del]');
+  if(a){const p=a.dataset.add;const arr=getP(p);
+    arr.push(p==='labs'?{item:'',val:'',flag:''}:{date:'',event:''});
+    rerender(p);save();progress();}
+  if(d){const p=d.dataset.del;getP(p).splice(+d.dataset.i,1);rerender(p);save();progress();}
+});
+function rerender(p){if(p==='labs')renderLabs();else renderTL();}
+
+/* ---------- export sheet ---------- */
+const ans=s=>`<p class="xa">${esc(t(s))||'　'}</p>`;
+function buildSheet(){
+  const L=S.labs.filter(r=>t(r.item)||t(r.val));
+  const N=S.hpi.next.filter(r=>t(r.date)||t(r.event));
+  const blocks=[
+`<div class="xb"><p class="xt">ACS 案例重點整理</p><div class="xi">班級：${esc(S.info.cls)}　學號：${esc(S.info.sid)}　姓名：${esc(S.info.name)}</div></div>`,
+`<div class="xb"><p class="xh">1. 主訴</p><p class="xq">病人有哪些症狀？</p>${ans(S.cc)}</div>`,
+`<div class="xb"><p class="xh">2. 現在病史</p><p class="xq">年齡：${esc(S.hpi.age)}</p>
+ <table><tr><th style="width:110px">日期</th><th>經過</th></tr>
+ <tr><td>${esc(S.hpi.start.date)}</td><td>${esc(S.hpi.start.event)}</td></tr>
+ ${N.map(r=>`<tr><td>${esc(r.date)}</td><td>${esc(r.event)}</td></tr>`).join('')}</table></div>`,
+`<div class="xb"><p class="xh">3. 過去病史</p><p class="xq">有意義的過去病史</p>${ans(S.ph)}</div>`,
+`<div class="xb"><p class="xh">4. 家族史</p>${ans(S.fh)}</div>`,
+`<div class="xb"><p class="xh">5. 檢查與檢驗</p><p class="xq">有意義的檢驗值</p>
+ <table><tr><th>檢驗項目</th><th>數值</th><th>判讀</th></tr>${L.map(r=>`<tr><td>${esc(r.item)}</td><td>${esc(r.val)}</td><td>${esc(r.flag)}</td></tr>`).join('')}</table>
+ <p class="xq">胸部 X 光：${esc(S.xray.yn)}</p>${ans(S.xray.note)}
+ <p class="xq">心電圖</p><table><tr><th>異常導程</th><th>何種異常</th><th>心肌病變位置</th></tr><tr><td>${esc(S.ecg.leads)}</td><td>${esc(S.ecg.type)}</td><td>${esc(S.ecg.site)}</td></tr></table></div>`,
+`<div class="xb"><p class="xh">6. 重要事件：心導管</p>
+ <table><tr><th style="width:70px">血管</th>${CATHS.map(c=>`<th>${c.date}</th>`).join('')}</tr>
+ ${VESSELS.map(v=>`<tr><td>${v}</td>${CATHS.map(c=>`<td>${esc(S.cath[c.k][v])}</td>`).join('')}</tr>`).join('')}
+ <tr><td>治療</td>${CATHS.map(c=>`<td style="white-space:pre-wrap">${esc(S.cath[c.k].tx)}</td>`).join('')}</tr>
+ <tr><td>治療成效</td>${CATHS.map(c=>`<td>${esc(S.cath[c.k].pre)} → ${esc(S.cath[c.k].post)}</td>`).join('')}</tr></table></div>`
+  ];
+  const sheet=document.getElementById('sheet');
+  sheet.innerHTML=blocks.join('');
+  return sheet;
+}
+
+/* ---------- downloads ---------- */
+let dl=null;
+const msg=document.getElementById('msg');
+const say=(text,warn)=>{msg.textContent=text;msg.classList.toggle('warn',!!warn);};
+const fname=ext=>{const p=['ACS案例',t(S.info.sid),t(S.info.name)].filter(Boolean).join('_');return p+'.'+ext;};
+if(window.claude&&window.claude.use){window.claude.use('downloads').then(x=>{dl=x;}).catch(()=>{});}
+
+async function snap(el){
+  if(document.fonts&&document.fonts.ready){try{await document.fonts.ready;}catch(e){}}
+  return html2canvas(el,{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false,windowWidth:1000});
+}
+async function makePDF(){
+  const sheet=buildSheet();
+  const {jsPDF}=window.jspdf;
+  const pdf=new jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
+  const W=190,M=10,H=297-2*M;let y=M;
+  for(const b of sheet.children){
+    const c=await snap(b);
+    const h=c.height*W/c.width;
+    if(h<=H){
+      if(y+h>M+H){pdf.addPage();y=M;}
+      pdf.addImage(c.toDataURL('image/jpeg',0.92),'JPEG',M,y,W,h);y+=h;
+    }else{
+      const pxPerPage=Math.floor(c.width*H/W);let off=0;
+      if(y>M){pdf.addPage();y=M;}
+      while(off<c.height){
+        const sh=Math.min(pxPerPage,c.height-off);
+        const part=document.createElement('canvas');part.width=c.width;part.height=sh;
+        part.getContext('2d').drawImage(c,0,off,c.width,sh,0,0,c.width,sh);
+        const ph=sh*W/c.width;pdf.addImage(part.toDataURL('image/jpeg',0.92),'JPEG',M,y,W,ph);
+        off+=sh;if(off<c.height){pdf.addPage();y=M;}else{y+=ph;}
+      }
+    }
+  }
+  return pdf.output('blob');
+}
+async function makePNG(){
+  const c=await snap(buildSheet());
+  return new Promise(r=>c.toBlob(r,'image/png'));
+}
+async function run(kind,btn){
+  const n=progress();
+  
+  if(!window.html2canvas||!window.jspdf){say('下載工具還在載入，請稍等幾秒再按一次。',true);return;}
+  const btns=document.querySelectorAll('.btns .btn');btns.forEach(b=>b.disabled=true);
+  say('正在產生檔案…');
+  try{
+    const blob=kind==='pdf'?await makePDF():await makePNG();
+    if(dl){await dl.save({filename:fname(kind),data:blob});}
+    else{const u=URL.createObjectURL(blob);const link=document.createElement('a');link.href=u;link.download=fname(kind);document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);}
+    say(n<6?`已下載。提醒：還有 ${6-n} 項未完成。`:'已下載，可以帶去交班演練了。',n<6);
+  }catch(e){
+    const code=e&&e.code;
+    if(code==='declined')say('已取消下載。');
+    else if(code==='rate_limited')say('上一個下載視窗還開著，請先處理後再試。',true);
+    else say('下載沒有成功，請再試一次。',true);
+  }finally{btns.forEach(b=>b.disabled=false);document.getElementById('sheet').innerHTML='';}
+}
+document.getElementById('dl-pdf').addEventListener('click',e=>run('pdf',e.currentTarget));
+document.getElementById('dl-png').addEventListener('click',e=>run('png',e.currentTarget));
+
+/* ---------- clear ---------- */
+const conf=document.getElementById('confirm');
+document.getElementById('clear').addEventListener('click',()=>{conf.hidden=false;});
+document.getElementById('clear-no').addEventListener('click',()=>{conf.hidden=true;});
+document.getElementById('clear-yes').addEventListener('click',()=>{
+  S=fresh();save();renderAll();conf.hidden=true;say('已清除，可以重新填寫。');window.scrollTo({top:0});
+});
+
+function renderAll(){renderTL();renderLabs();renderCath();fillStatic();progress();}
+renderAll();
+})();
+</script>
+
+</body>
+</html>
